@@ -8,163 +8,153 @@
 <title>MLBB Assistant</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#10121b;color:#f5f5fa;font-family:Arial,sans-serif;padding:20px}
-header{text-align:center;padding:22px 0}
-h1{font-size:27px;color:#a99aff;margin:8px}
+body{margin:0;background:#10121b;color:#f5f5fa;font-family:Arial,sans-serif;padding:18px}
+header{text-align:center;padding:25px 0}
+h1{font-size:29px;color:#a99aff;margin:8px}
 .sub{color:#999;font-size:13px}
-.panel{background:#1b1e2b;border:1px solid #303448;border-radius:16px;padding:16px;margin:15px 0}
-h2{font-size:18px;margin-top:0}
-label{display:block;color:#bbb;font-size:13px;margin:12px 0 7px}
-select,input{width:100%;background:#10121b;color:white;border:1px solid #42465b;padding:13px;border-radius:10px;font-size:15px}
-button{background:#7664d9;color:white;border:0;padding:14px;border-radius:11px;font-size:15px;font-weight:bold;width:100%;margin-top:13px}
-button:active{opacity:.7}
-.secondary{background:#34374b}
-.result{background:#26233d;border-radius:12px;padding:14px;margin-top:12px;line-height:1.8}
-.item{padding:10px;border-bottom:1px solid #393b4c}
-small{color:#aaa}
-.tag{display:inline-block;background:#35304e;padding:5px 9px;border-radius:20px;margin:3px;font-size:12px}
+.panel{background:#1b1e2b;border:1px solid #303448;border-radius:18px;padding:17px;margin:15px 0}
+h2{font-size:19px;margin-top:0}
+label{display:block;color:#bbb;font-size:13px;margin:13px 0 7px}
+select{width:100%;background:#10121b;color:white;border:1px solid #42465b;padding:14px;border-radius:11px;font-size:15px}
+button{background:#7664d9;color:white;border:0;padding:15px;border-radius:12px;font-size:15px;font-weight:bold;width:100%;margin-top:17px}
+button:disabled{opacity:.5}
+.result{background:#26233d;border-radius:13px;padding:15px;margin-top:15px;text-align:center}
+.pick{font-size:18px;font-weight:bold;padding:13px;border-bottom:1px solid #393b4c}
+.note{font-size:12px;color:#999;line-height:1.7;margin-top:12px}
+.status{font-size:12px;color:#aaa;margin-top:10px}
 </style>
 </head>
 <body>
 <header>
-<div style="font-size:35px">⚔️</div>
+<div style="font-size:38px">⚔️</div>
 <h1>MLBB ASSISTANT</h1>
-<div class="sub">PERSONAL COUNTER & BUILD ANALYZER</div>
+<div class="sub">SMART COUNTER PICK</div>
 </header>
 
 <div class="panel">
 <h2>🎯 Counter Pick</h2>
-<label>اختر هيروات الفريق الخصم (5 هيروات)</label>
-<div id="enemies"></div>
-<button onclick="counter()">حلل التشكيلة واقترح أفضل هيرو</button>
-<div id="counterResult"></div>
-</div>
 
-<div class="panel">
-<h2>🛡️ Build Counter</h2>
-<label>اختر الهيرو الخاص بك</label>
-<select id="myHero"></select>
-<label>اختر هيروات الخصم</label>
-<div id="buildEnemies"></div>
-<button onclick="build()">حلل وأظهر الـ Build</button>
-<div id="buildResult"></div>
+<label>اختر اللاين الخاص فيك</label>
+<select id="lane">
+<option value="Exp">EXP Lane</option>
+<option value="Gold">Gold Lane</option>
+<option value="Mid">Mid Lane</option>
+<option value="Jungle">Jungle</option>
+<option value="Roam">Roam</option>
+</select>
+
+<div id="enemySelectors"></div>
+
+<button id="analyze" onclick="analyze()">رشّح أفضل 3 هيروات</button>
+<div id="result"></div>
+<div class="status" id="status">جاري تحميل قائمة الهيروات...</div>
 </div>
 
 <script>
-const heroes=[
-["Aulus","Fighter","Physical"],
-["Tigreal","Tank","Physical"],
-["Miya","Marksman","Physical"],
-["Fanny","Assassin","Physical"],
-["Estes","Support","Magic"],
-["Nana","Mage","Magic"],
-["Layla","Marksman","Physical"],
-["Dyrroth","Fighter","Physical"],
-["Karina","Assassin","Magic"],
-["Franco","Tank","Physical"],
-["Lunox","Mage","Magic"],
-["Baxia","Tank","Magic"],
-["Claude","Marksman","Physical"],
-["Chou","Fighter","Physical"],
-["Saber","Assassin","Physical"],
-["Valir","Mage","Magic"],
-["Ruby","Fighter","Physical"],
-["Angela","Support","Magic"],
-["Benedetta","Assassin","Physical"],
-["Karrie","Marksman","Physical"]
-];
+let heroes = [];
 
-const counters={
-"Aulus":["Kiting","Crowd Control"],
-"Fanny":["Crowd Control","Anti-Mobility"],
-"Miya":["Burst","Assassin"],
-"Estes":["Anti-Heal"],
-"Tigreal":["Disengage","Crowd Control"],
-"Layla":["Burst","Dive"],
-"Dyrroth":["Kiting","Burst"],
-"Karina":["Magic Defense","Crowd Control"],
-"Franco":["Positioning","Disengage"],
-"Lunox":["Burst","Magic Defense"],
-"Baxia":["Physical Damage","Kiting"],
-"Claude":["Burst","Crowd Control"],
-"Chou":["Crowd Control","Burst"],
-"Saber":["Positioning","Physical Defense"],
-"Valir":["Dive","Mobility"],
-"Ruby":["Anti-Heal","Kiting"],
-"Angela":["Burst","Crowd Control"],
-"Benedetta":["Crowd Control","Burst"],
-"Karrie":["Burst","Dive"],
-"Nana":["Burst","Mobility"]
+const laneRoles = {
+ Exp:["Fighter","Tank"],
+ Gold:["Marksman"],
+ Mid:["Mage"],
+ Jungle:["Assassin","Fighter"],
+ Roam:["Tank","Support"]
 };
 
-const items={
-"AntiHeal":"Dominance Ice / Sea Halberd / Glowing Wand",
-"Physical Defense":"Antique Cuirass / Blade Armor",
-"Magic Defense":"Athena's Shield / Radiant Armor",
-"Tank":"Malefic Roar / Divine Glaive",
-"Physical":"Malefic Roar / Blade of Despair",
-"Magic":"Divine Glaive / Holy Crystal"
-};
-
-function options(id){
-document.getElementById(id).innerHTML=
-heroes.map(h=>`<option value="${h[0]}">${h[0]} — ${h[1]}</option>`).join("");
-}
-function enemyInputs(id){
-let html="";
-for(let i=0;i<5;i++){
-html+=`<label>الخصم ${i+1}</label><select class="enemy">
-${heroes.map(h=>`<option value="${h[0]}">${h[0]}</option>`).join("")}
-</select>`;
-}
-document.getElementById(id).innerHTML=html;
-}
-options("myHero");
-enemyInputs("enemies");
-enemyInputs("buildEnemies");
-
-function selected(id){
-return [...document.querySelectorAll(`#${id} .enemy`)].map(x=>x.value);
+async function loadHeroes(){
+ const status=document.getElementById("status");
+ try{
+  const response=await fetch("https://mlbbdex.com/api/v1/heroes");
+  if(!response.ok) throw new Error("API");
+  const data=await response.json();
+  const list=Array.isArray(data)?data:(data.data||data.heroes||[]);
+  heroes=list.map(h=>({
+   name:h.name||h.hero_name,
+   role:h.role||"",
+   lane:h.lane||""
+  })).filter(h=>h.name);
+  if(heroes.length<50) throw new Error("Incomplete roster");
+  createSelectors();
+  status.textContent="تم تحميل "+heroes.length+" هيرو";
+ }catch(e){
+  status.textContent="تعذر تحميل قائمة الهيروات. تأكد من اتصال الإنترنت.";
+  document.getElementById("analyze").disabled=true;
+ }
 }
 
-function counter(){
-let enemies=selected("enemies");
-let scores=heroes.map(h=>{
-let score=0;
-enemies.forEach(e=>{
-if((counters[e]||[]).includes("Burst") && h[1]==="Assassin")score+=2;
-if((counters[e]||[]).includes("Anti-Heal") && h[1]==="Mage")score+=1;
-if((counters[e]||[]).includes("Crowd Control") && h[1]==="Fighter")score+=1;
-});
-return {name:h[0],role:h[1],score};
-});
-scores.sort((a,b)=>b.score-a.score);
-document.getElementById("counterResult").innerHTML=
-`<div class="result"><b>اقتراحات أولية:</b>
-${scores.slice(0,3).map((h,i)=>`<div class="item">${i+1}. <b>${h.name}</b> — ${h.role}<br><small>نقاط توافق تجريبية: ${h.score}</small></div>`).join("")}
-<small>هذه نتيجة تجريبية وليست ترتيبًا تنافسيًا موثوقًا.</small></div>`;
+function createSelectors(){
+ const area=document.getElementById("enemySelectors");
+ area.innerHTML="";
+ for(let i=1;i<=5;i++){
+  const label=document.createElement("label");
+  label.textContent="هيرو الخصم "+i;
+  const select=document.createElement("select");
+  select.className="enemy";
+  select.innerHTML='<option value="">اختر الهيرو</option>'+
+   heroes.map(h=>`<option value="${escapeHTML(h.name)}">${escapeHTML(h.name)}</option>`).join("");
+  area.append(label,select);
+ }
 }
 
-function build(){
-let mine=document.getElementById("myHero").value;
-let enemies=selected("buildEnemies");
-let chosen=heroes.find(h=>h[0]===mine);
-let enemyRoles=enemies.map(e=>heroes.find(h=>h[0]===e)?.[2]);
-let magic=enemyRoles.filter(x=>x==="Magic").length;
-let physical=5-magic;
-let result=[
-chosen[2]==="Physical"?"Tough Boots / Warrior Boots":"Arcane Boots",
-magic>=3?"Athena's Shield":"Antique Cuirass",
-physical>=3?"Blade Armor":"Radiant Armor",
-chosen[2]==="Physical"?"Malefic Roar":"Divine Glaive",
-"Immortality",
-"Rose Gold Meteor / Winter Crown"
-];
-document.getElementById("buildResult").innerHTML=
-`<div class="result"><b>Build مقترح لـ ${mine}</b>
-${result.map((x,i)=>`<div class="item">${i+1}. ${x}</div>`).join("")}
-<small>Build تجريبي يعتمد على نوع الضرر الغالب. يحتاج مراجعة حسب الهيرو والتحديث والظروف داخل المباراة.</small></div>`;
+function escapeHTML(value){
+ return String(value).replace(/[&<>"']/g,c=>({
+  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+ }[c]));
 }
+
+function analyze(){
+ const lane=document.getElementById("lane").value;
+ const enemies=[...document.querySelectorAll(".enemy")].map(x=>x.value);
+ const result=document.getElementById("result");
+
+ if(enemies.some(x=>!x)){
+  result.innerHTML='<div class="result">اختر هيروات الخصم الخمسة أولاً.</div>';
+  return;
+ }
+
+ const roles=laneRoles[lane]||[];
+ const candidates=heroes.filter(h=>{
+  const heroLane=String(h.lane).toLowerCase();
+  const role=String(h.role).toLowerCase();
+  return heroLane.includes(lane.toLowerCase()) ||
+   roles.some(r=>role.includes(r.toLowerCase()));
+ });
+
+ const enemyRoles=enemies.map(name=>
+  heroes.find(h=>h.name===name)?.role||""
+ );
+
+ const ranked=candidates.map(hero=>{
+  let score=0;
+  const role=String(hero.role).toLowerCase();
+
+  enemyRoles.forEach(enemyRole=>{
+   const enemy=String(enemyRole).toLowerCase();
+   if(enemy.includes("marksman") && role.includes("assassin")) score+=2;
+   if(enemy.includes("mage") && role.includes("assassin")) score+=1;
+   if(enemy.includes("assassin") && role.includes("tank")) score+=2;
+   if(enemy.includes("fighter") && role.includes("marksman")) score+=1;
+   if(enemy.includes("tank") && role.includes("mage")) score+=1;
+  });
+
+  if(enemies.includes(hero.name)) score-=100;
+  return {name:hero.name,score};
+ });
+
+ ranked.sort((a,b)=>b.score-a.score);
+ const top=ranked.filter(h=>!enemies.includes(h.name)).slice(0,3);
+
+ if(top.length<3){
+  result.innerHTML='<div class="result">ما قدرت أطلع 3 ترشيحات لهذا اللاين.</div>';
+  return;
+ }
+
+ result.innerHTML='<div class="result">'+
+  top.map(h=>`<div class="pick">${escapeHTML(h.name)}</div>`).join("")+
+  '</div>';
+}
+
+loadHeroes();
 </script>
 </body>
 </html>
