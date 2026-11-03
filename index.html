@@ -1,0 +1,170 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#10121b">
+<title>MLBB Assistant</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#10121b;color:#f5f5fa;font-family:Arial,sans-serif;padding:20px}
+header{text-align:center;padding:22px 0}
+h1{font-size:27px;color:#a99aff;margin:8px}
+.sub{color:#999;font-size:13px}
+.panel{background:#1b1e2b;border:1px solid #303448;border-radius:16px;padding:16px;margin:15px 0}
+h2{font-size:18px;margin-top:0}
+label{display:block;color:#bbb;font-size:13px;margin:12px 0 7px}
+select,input{width:100%;background:#10121b;color:white;border:1px solid #42465b;padding:13px;border-radius:10px;font-size:15px}
+button{background:#7664d9;color:white;border:0;padding:14px;border-radius:11px;font-size:15px;font-weight:bold;width:100%;margin-top:13px}
+button:active{opacity:.7}
+.secondary{background:#34374b}
+.result{background:#26233d;border-radius:12px;padding:14px;margin-top:12px;line-height:1.8}
+.item{padding:10px;border-bottom:1px solid #393b4c}
+small{color:#aaa}
+.tag{display:inline-block;background:#35304e;padding:5px 9px;border-radius:20px;margin:3px;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+<div style="font-size:35px">⚔️</div>
+<h1>MLBB ASSISTANT</h1>
+<div class="sub">PERSONAL COUNTER & BUILD ANALYZER</div>
+</header>
+
+<div class="panel">
+<h2>🎯 Counter Pick</h2>
+<label>اختر هيروات الفريق الخصم (5 هيروات)</label>
+<div id="enemies"></div>
+<button onclick="counter()">حلل التشكيلة واقترح أفضل هيرو</button>
+<div id="counterResult"></div>
+</div>
+
+<div class="panel">
+<h2>🛡️ Build Counter</h2>
+<label>اختر الهيرو الخاص بك</label>
+<select id="myHero"></select>
+<label>اختر هيروات الخصم</label>
+<div id="buildEnemies"></div>
+<button onclick="build()">حلل وأظهر الـ Build</button>
+<div id="buildResult"></div>
+</div>
+
+<script>
+const heroes=[
+["Aulus","Fighter","Physical"],
+["Tigreal","Tank","Physical"],
+["Miya","Marksman","Physical"],
+["Fanny","Assassin","Physical"],
+["Estes","Support","Magic"],
+["Nana","Mage","Magic"],
+["Layla","Marksman","Physical"],
+["Dyrroth","Fighter","Physical"],
+["Karina","Assassin","Magic"],
+["Franco","Tank","Physical"],
+["Lunox","Mage","Magic"],
+["Baxia","Tank","Magic"],
+["Claude","Marksman","Physical"],
+["Chou","Fighter","Physical"],
+["Saber","Assassin","Physical"],
+["Valir","Mage","Magic"],
+["Ruby","Fighter","Physical"],
+["Angela","Support","Magic"],
+["Benedetta","Assassin","Physical"],
+["Karrie","Marksman","Physical"]
+];
+
+const counters={
+"Aulus":["Kiting","Crowd Control"],
+"Fanny":["Crowd Control","Anti-Mobility"],
+"Miya":["Burst","Assassin"],
+"Estes":["Anti-Heal"],
+"Tigreal":["Disengage","Crowd Control"],
+"Layla":["Burst","Dive"],
+"Dyrroth":["Kiting","Burst"],
+"Karina":["Magic Defense","Crowd Control"],
+"Franco":["Positioning","Disengage"],
+"Lunox":["Burst","Magic Defense"],
+"Baxia":["Physical Damage","Kiting"],
+"Claude":["Burst","Crowd Control"],
+"Chou":["Crowd Control","Burst"],
+"Saber":["Positioning","Physical Defense"],
+"Valir":["Dive","Mobility"],
+"Ruby":["Anti-Heal","Kiting"],
+"Angela":["Burst","Crowd Control"],
+"Benedetta":["Crowd Control","Burst"],
+"Karrie":["Burst","Dive"],
+"Nana":["Burst","Mobility"]
+};
+
+const items={
+"AntiHeal":"Dominance Ice / Sea Halberd / Glowing Wand",
+"Physical Defense":"Antique Cuirass / Blade Armor",
+"Magic Defense":"Athena's Shield / Radiant Armor",
+"Tank":"Malefic Roar / Divine Glaive",
+"Physical":"Malefic Roar / Blade of Despair",
+"Magic":"Divine Glaive / Holy Crystal"
+};
+
+function options(id){
+document.getElementById(id).innerHTML=
+heroes.map(h=>`<option value="${h[0]}">${h[0]} — ${h[1]}</option>`).join("");
+}
+function enemyInputs(id){
+let html="";
+for(let i=0;i<5;i++){
+html+=`<label>الخصم ${i+1}</label><select class="enemy">
+${heroes.map(h=>`<option value="${h[0]}">${h[0]}</option>`).join("")}
+</select>`;
+}
+document.getElementById(id).innerHTML=html;
+}
+options("myHero");
+enemyInputs("enemies");
+enemyInputs("buildEnemies");
+
+function selected(id){
+return [...document.querySelectorAll(`#${id} .enemy`)].map(x=>x.value);
+}
+
+function counter(){
+let enemies=selected("enemies");
+let scores=heroes.map(h=>{
+let score=0;
+enemies.forEach(e=>{
+if((counters[e]||[]).includes("Burst") && h[1]==="Assassin")score+=2;
+if((counters[e]||[]).includes("Anti-Heal") && h[1]==="Mage")score+=1;
+if((counters[e]||[]).includes("Crowd Control") && h[1]==="Fighter")score+=1;
+});
+return {name:h[0],role:h[1],score};
+});
+scores.sort((a,b)=>b.score-a.score);
+document.getElementById("counterResult").innerHTML=
+`<div class="result"><b>اقتراحات أولية:</b>
+${scores.slice(0,3).map((h,i)=>`<div class="item">${i+1}. <b>${h.name}</b> — ${h.role}<br><small>نقاط توافق تجريبية: ${h.score}</small></div>`).join("")}
+<small>هذه نتيجة تجريبية وليست ترتيبًا تنافسيًا موثوقًا.</small></div>`;
+}
+
+function build(){
+let mine=document.getElementById("myHero").value;
+let enemies=selected("buildEnemies");
+let chosen=heroes.find(h=>h[0]===mine);
+let enemyRoles=enemies.map(e=>heroes.find(h=>h[0]===e)?.[2]);
+let magic=enemyRoles.filter(x=>x==="Magic").length;
+let physical=5-magic;
+let result=[
+chosen[2]==="Physical"?"Tough Boots / Warrior Boots":"Arcane Boots",
+magic>=3?"Athena's Shield":"Antique Cuirass",
+physical>=3?"Blade Armor":"Radiant Armor",
+chosen[2]==="Physical"?"Malefic Roar":"Divine Glaive",
+"Immortality",
+"Rose Gold Meteor / Winter Crown"
+];
+document.getElementById("buildResult").innerHTML=
+`<div class="result"><b>Build مقترح لـ ${mine}</b>
+${result.map((x,i)=>`<div class="item">${i+1}. ${x}</div>`).join("")}
+<small>Build تجريبي يعتمد على نوع الضرر الغالب. يحتاج مراجعة حسب الهيرو والتحديث والظروف داخل المباراة.</small></div>`;
+}
+</script>
+</body>
+</html>
